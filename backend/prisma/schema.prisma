@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   // "admin" | "student"
+  createdAt DateTime @default(now())
+  notices   Notice[] @relation("CreatedNotices")
+}
+
+model Notice {
+  id           String   @id @default(uuid())
+  title        String
+  description  String
+  category     String
+  attachmentUrl String?
+  createdById  String
+  createdBy    User     @relation("CreatedNotices", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  publishAt    DateTime
+  isPublished  Boolean  @default(false)
+}
