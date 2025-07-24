@@ -11,11 +11,31 @@ import {
 } from "react-native";
 import { Bell, Calendar, Eye, Clock } from 'lucide-react-native';
 
+// Types
+interface Notice {
+  id: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  attachmentUrl?: string;
+  createdById: string;
+  createdAt: string;
+  publishAt?: string;
+  isPublished: boolean;
+}
+
+interface ApiResponse {
+  data: Notice[] | { data: Notice[] };
+  page?: number;
+  totalPages?: number;
+  total?: number;
+}
+
 // API service function
-const getNotices = async () => {
+const getNotices = async (): Promise<ApiResponse> => {
   try {
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwZDVmMzQwLWI4YjctNDAwZS1hMTc1LWM1Y2E5NWYwNWJlMyIsInJvbGUiOiJzdHVkZW50IiwiaWF0IjoxNzUzMzgzNzg0LCJleHAiOjE3NTM5ODg1ODR9.3wgWczTrUh1DcGs1kkLSAnc5XFYwFO3gUN3raqbz8Xs'; // You'll need to get this from your auth storage
-    const response = await fetch('http://localhost:3000/api/notices', {
+    const token: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwZDVmMzQwLWI4YjctNDAwZS1hMTc1LWM1Y2E5NWYwNWJlMyIsInJvbGUiOiJzdHVkZW50IiwiaWF0IjoxNzUzMzgzNzg0LCJleHAiOjE3NTM5ODg1ODR9.3wgWczTrUh1DcGs1kkLSAnc5XFYwFO3gUN3raqbz8Xs'; // You'll need to get this from your auth storage
+    const response = await fetch('https://0hnvvn91-5000.inc1.devtunnels.ms/api/notices', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -27,20 +47,20 @@ const getNotices = async () => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const data = await response.json();
-    return { data };
+    const data: ApiResponse = await response.json();
+    return { data : data.data };
   } catch (error) {
     throw error;
   }
 };
 
-export default function NoticesPage() {
-  const [notices, setNotices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
+const NoticesPage: React.FC = () => {
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchNotices = async () => {
+  const fetchNotices = async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -52,7 +72,7 @@ export default function NoticesPage() {
       } else if (res.data && Array.isArray(res.data.data)) {
         setNotices(res.data.data);
       } else {
-        setNotices(res.data || []);
+        // setNotices(res.data || []);
       }
     } catch (err) {
       setError('Failed to load notices');
@@ -68,13 +88,13 @@ export default function NoticesPage() {
     fetchNotices();
   }, []);
 
-  const onRefresh = () => {
+  const onRefresh = (): void => {
     setRefreshing(true);
     fetchNotices();
   };
 
   // Format date helper
-  const formatDate = (dateString) => {
+  const formatDate = (dateString?: string): string => {
     if (!dateString) return 'N/A';
     try {
       return new Date(dateString).toLocaleDateString('en-US', {
@@ -90,19 +110,19 @@ export default function NoticesPage() {
   };
 
   // Truncate description helper
-  const truncateText = (text, maxLength = 120) => {
+  const truncateText = (text?: string, maxLength: number = 120): string => {
     if (!text || typeof text !== 'string') return '';
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   };
 
   // Format description to handle newlines
-  const formatDescription = (description) => {
+  const formatDescription = (description?: string): string => {
     if (!description) return '';
     return description.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
   };
 
-  const handleViewDetails = (notice) => {
+  const handleViewDetails = (notice: Notice): void => {
     // Show notice details in an alert instead of navigating
     Alert.alert(
       notice.title || 'Notice Details',
@@ -111,7 +131,7 @@ export default function NoticesPage() {
     );
   };
 
-  const handleLogin = () => {
+  const handleLogin = (): void => {
     // Handle login navigation here
     Alert.alert('Login Required', 'Please login to view notices');
   };
@@ -178,7 +198,7 @@ export default function NoticesPage() {
             </View>
           ) : (
             <View className="gap-4">
-              {notices.map(n => (
+              {notices.map((n: Notice) => (
                 <View 
                   key={n.id} 
                   className="bg-white rounded-lg border border-gray-200 shadow-sm"
@@ -271,4 +291,6 @@ export default function NoticesPage() {
       </ScrollView>
     </View>
   );
-}
+};
+
+export default NoticesPage;
