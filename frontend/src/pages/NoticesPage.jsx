@@ -1,77 +1,40 @@
-import "../global.css"
 import React, { useEffect, useState } from 'react';
-import { 
-  Text, 
-  View, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  RefreshControl,
-  Alert
-} from "react-native";
-import { Bell, Calendar, Eye, Clock } from 'lucide-react-native';
+import { useNavigate } from 'react-router-dom';  // Added this import
+import { getNotices } from '../services/api';
+import { Bell, Calendar, Eye, ChevronRight, Clock } from 'lucide-react';
 
-// API service function
-const getNotices = async () => {
-  try {
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwZDVmMzQwLWI4YjctNDAwZS1hMTc1LWM1Y2E5NWYwNWJlMyIsInJvbGUiOiJzdHVkZW50IiwiaWF0IjoxNzUzMzgzNzg0LCJleHAiOjE3NTM5ODg1ODR9.3wgWczTrUh1DcGs1kkLSAnc5XFYwFO3gUN3raqbz8Xs'; // You'll need to get this from your auth storage
-    const response = await fetch('http://localhost:3000/api/notices', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { data };
-  } catch (error) {
-    throw error;
-  }
-};
-
-export default function NoticesPage() {
+const NoticesPage = () => {
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-
-  const fetchNotices = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await getNotices();
-      
-      // Handle different response structures based on API docs
-      if (Array.isArray(res.data)) {
-        setNotices(res.data);
-      } else if (res.data && Array.isArray(res.data.data)) {
-        setNotices(res.data.data);
-      } else {
-        setNotices(res.data || []);
-      }
-    } catch (err) {
-      setError('Failed to load notices');
-      console.error('Error fetching notices:', err);
-      setNotices([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const navigate = useNavigate();  // Initialize the navigate function
 
   useEffect(() => {
+    const fetchNotices = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await getNotices();
+        
+        // Handle different response structures
+        if (Array.isArray(res.data)) {
+          setNotices(res.data);
+        } else if (res.data && Array.isArray(res.data.data)) {
+          setNotices(res.data.data);
+        } else {
+          setNotices(res.data || []);
+        }
+      } catch (err) {
+        setError('Failed to load notices');
+        console.error('Error fetching notices:', err);
+        setNotices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchNotices();
   }, []);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchNotices();
-  };
 
   // Format date helper
   const formatDate = (dateString) => {
@@ -90,7 +53,7 @@ export default function NoticesPage() {
   };
 
   // Truncate description helper
-  const truncateText = (text, maxLength = 120) => {
+  const truncateText = (text, maxLength = 150) => {
     if (!text || typeof text !== 'string') return '';
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
@@ -99,176 +62,137 @@ export default function NoticesPage() {
   // Format description to handle newlines
   const formatDescription = (description) => {
     if (!description) return '';
+    // Replace newlines with spaces and clean up extra whitespace
     return description.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
   };
 
-  const handleViewDetails = (notice) => {
-    // Show notice details in an alert instead of navigating
-    Alert.alert(
-      notice.title || 'Notice Details',
-      formatDescription(notice.description) || 'No description available',
-      [{ text: 'OK' }]
-    );
+  // Navigation function to notice details
+  const handleViewDetails = (id) => {
+    navigate(`/notice/${id}`);
   };
 
-  const handleLogin = () => {
-    // Handle login navigation here
-    Alert.alert('Login Required', 'Please login to view notices');
-  };
-
-  if (loading && !refreshing) {
+  if (loading) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text className="text-gray-600 mt-4 text-base">Loading notices...</Text>
-      </View>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading notices...</p>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center px-6">
-        <Bell size={48} color="#ef4444" />
-        <Text className="text-lg font-medium text-gray-900 mb-2 text-center mt-4">
-          You need to login first
-        </Text>
-        <Text className="text-gray-600 mb-6 text-center">{error}</Text>
-        <TouchableOpacity 
-          className="px-6 py-3 bg-blue-600 rounded-lg"
-          onPress={handleLogin}
-        >
-          <Text className="text-white font-medium">Login</Text>
-        </TouchableOpacity>
-      </View>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Bell className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">You need to login first</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/login')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Login 
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <View className="bg-white border-b border-gray-200 pt-12 pb-6 px-4 shadow-sm">
-        <View className="flex-row items-center">
-          <Bell size={32} color="#2563eb" />
-          <View className="ml-3 flex-1">
-            <Text className="text-2xl font-bold text-gray-900">Notices</Text>
-            <Text className="text-gray-600 mt-1 text-sm">
-              Stay updated with the latest announcements
-            </Text>
-          </View>
-        </View>
-      </View>
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center space-x-3">
+            <Bell className="h-8 w-8 text-blue-600" />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Notices</h1>
+              <p className="text-gray-600 mt-1">Stay updated with the latest announcements</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <ScrollView 
-        className="flex-1"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="p-4">
-          {notices.length === 0 ? (
-            <View className="bg-white rounded-lg p-12 items-center shadow-sm">
-              <Bell size={48} color="#9ca3af" />
-              <Text className="text-lg font-medium text-gray-900 mb-2 mt-4">
-                No notices available
-              </Text>
-              <Text className="text-gray-600 text-center">
-                Check back later for new announcements
-              </Text>
-            </View>
-          ) : (
-            <View className="gap-4">
-              {notices.map(n => (
-                <View 
-                  key={n.id} 
-                  className="bg-white rounded-lg border border-gray-200 shadow-sm"
-                >
-                  <View className="p-4">
-                    {/* Category Badge */}
-                    {n.category && (
-                      <View className="mb-3">
-                        <View className="bg-blue-100 rounded-full px-3 py-1 self-start">
-                          <Text className="text-xs font-medium text-blue-800">
-                            {n.category}
-                          </Text>
-                        </View>
-                      </View>
+      {/* Notices Grid */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {notices.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+            <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No notices available</h3>
+            <p className="text-gray-600">Check back later for new announcements</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {notices.map(n => (
+              <div key={n.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-200 overflow-hidden">
+                <div className="p-6">
+                  {/* Category Badge */}
+                  {n.category && (
+                    <div className="mb-3">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {n.category}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Title */}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    {n.title || 'Untitled Notice'}
+                  </h3>
+
+                  {/* Description */}
+                  {n.description && (
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      {truncateText(formatDescription(n.description))}
+                    </p>
+                  )}
+
+                  {/* Metadata */}
+                  <div className="flex flex-col space-y-1 text-xs text-gray-500 mb-4">
+                    <div className="flex items-center">
+                      <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
+                      <span>Created: {formatDate(n.createdAt)}</span>
+                    </div>
+                    {n.publishAt && (
+                      <div className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span>Published: {formatDate(n.publishAt)}</span>
+                      </div>
                     )}
+                  </div>
 
-                    {/* Title */}
-                    <Text className="text-lg font-semibold text-gray-900 mb-3">
-                      {n.title || 'Untitled Notice'}
-                    </Text>
+                  {/* Status Badge */}
+                  <div className="mb-4">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      n.isPublished 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {n.isPublished ? 'Published' : 'Draft'}
+                    </span>
+                  </div>
 
-                    {/* Description */}
-                    {n.description && (
-                      <Text className="text-gray-600 text-sm mb-4 leading-5">
-                        {truncateText(formatDescription(n.description))}
-                      </Text>
-                    )}
-
-                    {/* Metadata */}
-                    <View className="mb-4 gap-1">
-                      <View className="flex-row items-center">
-                        <Calendar size={12} color="#6b7280" />
-                        <Text className="text-xs text-gray-500 ml-1">
-                          Created: {formatDate(n.createdAt)}
-                        </Text>
-                      </View>
-                      {n.publishAt && (
-                        <View className="flex-row items-center">
-                          <Clock size={12} color="#6b7280" />
-                          <Text className="text-xs text-gray-500 ml-1">
-                            Published: {formatDate(n.publishAt)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Status Badge */}
-                    <View className="mb-4">
-                      <View className={`rounded-full px-2 py-1 self-start ${
-                        n.isPublished 
-                          ? 'bg-green-100' 
-                          : 'bg-yellow-100'
-                      }`}>
-                        <Text className={`text-xs font-medium ${
-                          n.isPublished 
-                            ? 'text-green-800' 
-                            : 'text-yellow-800'
-                        }`}>
-                          {n.isPublished ? 'Published' : 'Draft'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Action Button */}
-                    <TouchableOpacity
-                      onPress={() => handleViewDetails(n)}
-                      className="bg-blue-600 rounded-lg px-4 py-3 flex-row items-center justify-between active:bg-blue-700"
-                    >
-                      <View className="flex-row items-center">
-                        <Eye size={16} color="white" />
-                        <Text className="text-white text-sm font-medium ml-2">
-                          View Details
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Attachment indicator */}
-                    {n.attachmentUrl && (
-                      <View className="mt-2 flex-row items-center">
-                        <View className="w-2 h-2 bg-blue-600 rounded-full mr-2" />
-                        <Text className="text-xs text-gray-500">Has attachment</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-      </ScrollView>
-    </View>
+                  {/* Action Button */}
+                  <button
+                    onClick={() => handleViewDetails(n.id)}
+                    className="inline-flex items-center justify-between w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 group"
+                  >
+                    <div className="flex items-center">
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </div>
+                    <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
-}
+};
+
+export default NoticesPage;

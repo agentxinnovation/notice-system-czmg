@@ -151,8 +151,8 @@ const startNoticePublisherCron = () => {
 
 // Alternative: Schedule to run every 5 minutes (more reasonable for production)
 const startNoticePublisherCronFiveMinutes = () => {
-  cron.schedule('*/5 * * * *', publishDueNoticesDirectly);
-  console.log('Notice publisher cron job started - running every 5 minutes');
+  cron.schedule('*/1 * * * *', publishDueNoticesDirectly);
+  console.log('Notice publisher cron job started - running every 1 minutes');
 };
 
 // Export functions
