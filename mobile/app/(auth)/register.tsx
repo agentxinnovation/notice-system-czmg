@@ -25,11 +25,9 @@ const Register = () => {
   });
   
   const [errors, setErrors] = useState<Partial<Record<FormField, string>>>({});
-  
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
   const [success, setSuccess] = useState(false);
 
   const handleChange = (field: FormField, value: string) => {
@@ -62,22 +60,30 @@ const Register = () => {
       const response = await fetch('https://0hnvvn91-5000.inc1.devtunnels.ms/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: 'student' }),
+        body: JSON.stringify({ 
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: 'student' 
+        }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Registration failed');
 
+      // Store both token and user data
       await SecureStore.setItemAsync('authToken', data.token);
+      await SecureStore.setItemAsync('userData', JSON.stringify(data.user));
+      
       setSuccess(true);
       setFormData({ name: '', email: '', password: '', confirmPassword: '' });
 
       Alert.alert('Success', 'Registered successfully!', [
-        { text: 'OK', onPress: () => router.push('/login') },
+        { text: 'OK', onPress: () => router.replace('/') },
       ]);
     } catch (err: any) {
       if (err.message.includes('email')) setErrors({ email: 'Email already exists' });
-      else Alert.alert('Error', err.message || 'Try again');
+      else Alert.alert('Error', err.message || 'An error occurred during registration');
     } finally {
       setLoading(false);
     }
@@ -93,10 +99,10 @@ const Register = () => {
         </Text>
         <Pressable
           className="bg-emerald-500 px-6 py-3 rounded-xl flex-row items-center"
-          onPress={() => router.push('/login')}
+          onPress={() => router.replace('/')}
         >
           <Ionicons name="arrow-forward" size={20} color="white" />
-          <Text className="text-white ml-2 font-semibold text-base">Continue to Login</Text>
+          <Text className="text-white ml-2 font-semibold text-base">Continue to App</Text>
         </Pressable>
       </View>
     );

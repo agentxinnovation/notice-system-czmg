@@ -11,9 +11,9 @@ const {
   deleteNotice
 } = require('../controllers/noticeController');
 
-router.get('/', authMiddleware, getAllNotices);
-router.get('/all', authMiddleware, getAllNoticesAll);
-router.get('/:id', authMiddleware, getNoticeById);
+router.get('/', getAllNotices);
+router.get('/all', getAllNoticesAll);
+router.get('/:id', getNoticeById);
 router.post('/', authMiddleware, checkRole('admin'), createNotice);
 router.put('/:id', authMiddleware, checkRole('admin'), updateNotice);
 router.delete('/:id', authMiddleware, checkRole('admin'), deleteNotice);

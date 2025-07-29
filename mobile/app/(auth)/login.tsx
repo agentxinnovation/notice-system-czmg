@@ -23,7 +23,6 @@ const Login = () => {
   });
   
   const [errors, setErrors] = useState<Partial<Record<FormField, string>>>({});
-  
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -56,19 +55,25 @@ const Login = () => {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Login failed');
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
 
+      // Store both token and user data
       await SecureStore.setItemAsync('authToken', data.token);
+      await SecureStore.setItemAsync('userData', JSON.stringify(data.user));
+
       setFormData({ email: '', password: '' });
 
       Alert.alert('Success', 'Logged in successfully!', [
-        { text: 'OK', onPress: () => router.push('/') },
+        { text: 'OK', onPress: () => router.replace('/') },
       ]);
     } catch (err: any) {
       if (err.message.includes('email') || err.message.includes('password')) {
         setErrors({ email: 'Invalid email or password' });
       } else {
-        Alert.alert('Error', err.message || 'Try again');
+        Alert.alert('Error', err.message || 'An error occurred during login');
       }
     } finally {
       setLoading(false);

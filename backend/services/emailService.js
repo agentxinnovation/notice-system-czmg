@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendNoticeEmail(to, notice) {
-  const noticeUrl = `http://localhost:5173/notice/${notice.id}`;
+  const noticeUrl = `https://0hnvvn91-5173.inc1.devtunnels.ms/notice/${notice.id}`;
   
   await transporter.sendMail({
     from: `"College Notices" <${process.env.EMAIL_USER}>`,
@@ -174,5 +174,4 @@ async function sendNoticeEmail(to, notice) {
     `
   });
 }
-
 module.exports = sendNoticeEmail;

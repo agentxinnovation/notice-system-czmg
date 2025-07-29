@@ -9,9 +9,10 @@ import {
   RefreshControl,
   Alert
 } from "react-native";
-import { Bell, Calendar, Eye, Clock } from 'lucide-react-native';
+import { Bell, Calendar, Eye, Clock, LogOut } from 'lucide-react-native'; // Added LogOut icon
+import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 
-// Types
 interface Notice {
   id: string;
   title?: string;
@@ -24,36 +25,6 @@ interface Notice {
   isPublished: boolean;
 }
 
-interface ApiResponse {
-  data: Notice[] | { data: Notice[] };
-  page?: number;
-  totalPages?: number;
-  total?: number;
-}
-
-// API service function
-const getNotices = async (): Promise<ApiResponse> => {
-  try {
-    const token: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwZDVmMzQwLWI4YjctNDAwZS1hMTc1LWM1Y2E5NWYwNWJlMyIsInJvbGUiOiJzdHVkZW50IiwiaWF0IjoxNzUzMzgzNzg0LCJleHAiOjE3NTM5ODg1ODR9.3wgWczTrUh1DcGs1kkLSAnc5XFYwFO3gUN3raqbz8Xs'; // You'll need to get this from your auth storage
-    const response = await fetch('https://0hnvvn91-5000.inc1.devtunnels.ms/api/notices', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data: ApiResponse = await response.json();
-    return { data : data.data };
-  } catch (error) {
-    throw error;
-  }
-};
-
 const NoticesPage: React.FC = () => {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -64,18 +35,32 @@ const NoticesPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getNotices();
       
-      // Handle different response structures based on API docs
-      if (Array.isArray(res.data)) {
-        setNotices(res.data);
-      } else if (res.data && Array.isArray(res.data.data)) {
-        setNotices(res.data.data);
-      } else {
-        // setNotices(res.data || []);
+      const token = await SecureStore.getItemAsync('authToken');
+      if (!token) {
+        throw new Error('Authentication required');
       }
-    } catch (err) {
-      setError('Failed to load notices');
+
+      const response = await fetch('https://0hnvvn91-5000.inc1.devtunnels.ms/api/notices', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          await handleLogout();
+          throw new Error('Session expired. Please login again.');
+        }
+        throw new Error(`Failed to fetch notices: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setNotices(Array.isArray(data.data) ? data.data : []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load notices');
       console.error('Error fetching notices:', err);
       setNotices([]);
     } finally {
@@ -84,8 +69,49 @@ const NoticesPage: React.FC = () => {
     }
   };
 
+  const handleLogout = async (): Promise<void> => {
+    try {
+      // Clear secure storage
+      await SecureStore.deleteItemAsync('authToken');
+      await SecureStore.deleteItemAsync('userData');
+      
+      // Redirect to login page
+      router.replace('/login');
+    } catch (err) {
+      console.error('Error during logout:', err);
+      Alert.alert('Error', 'Failed to logout properly');
+    }
+  };
+
+  const confirmLogout = (): void => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          onPress: handleLogout,
+          style: 'destructive',
+        },
+      ]
+    );
+  };
+
   useEffect(() => {
-    fetchNotices();
+    const checkAuth = async () => {
+      const token = await SecureStore.getItemAsync('authToken');
+      if (!token) {
+        router.replace('/login');
+      } else {
+        fetchNotices();
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   const onRefresh = (): void => {
@@ -93,7 +119,6 @@ const NoticesPage: React.FC = () => {
     fetchNotices();
   };
 
-  // Format date helper
   const formatDate = (dateString?: string): string => {
     if (!dateString) return 'N/A';
     try {
@@ -109,21 +134,18 @@ const NoticesPage: React.FC = () => {
     }
   };
 
-  // Truncate description helper
   const truncateText = (text?: string, maxLength: number = 120): string => {
     if (!text || typeof text !== 'string') return '';
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   };
 
-  // Format description to handle newlines
   const formatDescription = (description?: string): string => {
     if (!description) return '';
     return description.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
   };
 
   const handleViewDetails = (notice: Notice): void => {
-    // Show notice details in an alert instead of navigating
     Alert.alert(
       notice.title || 'Notice Details',
       formatDescription(notice.description) || 'No description available',
@@ -131,9 +153,8 @@ const NoticesPage: React.FC = () => {
     );
   };
 
-  const handleLogin = (): void => {
-    // Handle login navigation here
-    Alert.alert('Login Required', 'Please login to view notices');
+  const handleLoginRedirect = (): void => {
+    router.replace('/login');
   };
 
   if (loading && !refreshing) {
@@ -150,12 +171,12 @@ const NoticesPage: React.FC = () => {
       <View className="flex-1 bg-gray-50 items-center justify-center px-6">
         <Bell size={48} color="#ef4444" />
         <Text className="text-lg font-medium text-gray-900 mb-2 text-center mt-4">
-          You need to login first
+          Authentication Required
         </Text>
         <Text className="text-gray-600 mb-6 text-center">{error}</Text>
         <TouchableOpacity 
           className="px-6 py-3 bg-blue-600 rounded-lg"
-          onPress={handleLogin}
+          onPress={handleLoginRedirect}
         >
           <Text className="text-white font-medium">Login</Text>
         </TouchableOpacity>
@@ -167,14 +188,22 @@ const NoticesPage: React.FC = () => {
     <View className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="bg-white border-b border-gray-200 pt-12 pb-6 px-4 shadow-sm">
-        <View className="flex-row items-center">
-          <Bell size={32} color="#2563eb" />
-          <View className="ml-3 flex-1">
-            <Text className="text-2xl font-bold text-gray-900">Notices</Text>
-            <Text className="text-gray-600 mt-1 text-sm">
-              Stay updated with the latest announcements
-            </Text>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <Bell size={32} color="#2563eb" />
+            <View className="ml-3">
+              <Text className="text-2xl font-bold text-gray-900">Notices</Text>
+              <Text className="text-gray-600 mt-1 text-sm">
+                Stay updated with the latest announcements
+              </Text>
+            </View>
           </View>
+          <TouchableOpacity 
+            onPress={confirmLogout}
+            className="p-2 rounded-full bg-gray-100"
+          >
+            <LogOut size={24} color="#ef4444" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -198,73 +227,67 @@ const NoticesPage: React.FC = () => {
             </View>
           ) : (
             <View className="gap-4">
-              {notices.map((n: Notice) => (
+              {notices.map((notice) => (
                 <View 
-                  key={n.id} 
+                  key={notice.id} 
                   className="bg-white rounded-lg border border-gray-200 shadow-sm"
                 >
                   <View className="p-4">
-                    {/* Category Badge */}
-                    {n.category && (
+                    {notice.category && (
                       <View className="mb-3">
                         <View className="bg-blue-100 rounded-full px-3 py-1 self-start">
                           <Text className="text-xs font-medium text-blue-800">
-                            {n.category}
+                            {notice.category}
                           </Text>
                         </View>
                       </View>
                     )}
 
-                    {/* Title */}
                     <Text className="text-lg font-semibold text-gray-900 mb-3">
-                      {n.title || 'Untitled Notice'}
+                      {notice.title || 'Untitled Notice'}
                     </Text>
 
-                    {/* Description */}
-                    {n.description && (
+                    {notice.description && (
                       <Text className="text-gray-600 text-sm mb-4 leading-5">
-                        {truncateText(formatDescription(n.description))}
+                        {truncateText(formatDescription(notice.description))}
                       </Text>
                     )}
 
-                    {/* Metadata */}
                     <View className="mb-4 gap-1">
                       <View className="flex-row items-center">
                         <Calendar size={12} color="#6b7280" />
                         <Text className="text-xs text-gray-500 ml-1">
-                          Created: {formatDate(n.createdAt)}
+                          Created: {formatDate(notice.createdAt)}
                         </Text>
                       </View>
-                      {n.publishAt && (
+                      {notice.publishAt && (
                         <View className="flex-row items-center">
                           <Clock size={12} color="#6b7280" />
                           <Text className="text-xs text-gray-500 ml-1">
-                            Published: {formatDate(n.publishAt)}
+                            Published: {formatDate(notice.publishAt)}
                           </Text>
                         </View>
                       )}
                     </View>
 
-                    {/* Status Badge */}
                     <View className="mb-4">
                       <View className={`rounded-full px-2 py-1 self-start ${
-                        n.isPublished 
+                        notice.isPublished 
                           ? 'bg-green-100' 
                           : 'bg-yellow-100'
                       }`}>
                         <Text className={`text-xs font-medium ${
-                          n.isPublished 
+                          notice.isPublished 
                             ? 'text-green-800' 
                             : 'text-yellow-800'
                         }`}>
-                          {n.isPublished ? 'Published' : 'Draft'}
+                          {notice.isPublished ? 'Published' : 'Draft'}
                         </Text>
                       </View>
                     </View>
 
-                    {/* Action Button */}
                     <TouchableOpacity
-                      onPress={() => handleViewDetails(n)}
+                      onPress={() => handleViewDetails(notice)}
                       className="bg-blue-600 rounded-lg px-4 py-3 flex-row items-center justify-between active:bg-blue-700"
                     >
                       <View className="flex-row items-center">
@@ -275,8 +298,7 @@ const NoticesPage: React.FC = () => {
                       </View>
                     </TouchableOpacity>
 
-                    {/* Attachment indicator */}
-                    {n.attachmentUrl && (
+                    {notice.attachmentUrl && (
                       <View className="mt-2 flex-row items-center">
                         <View className="w-2 h-2 bg-blue-600 rounded-full mr-2" />
                         <Text className="text-xs text-gray-500">Has attachment</Text>

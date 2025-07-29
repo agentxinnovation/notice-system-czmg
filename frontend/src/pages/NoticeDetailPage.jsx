@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // Added useParams
+import { useParams, useNavigate } from 'react-router-dom';
 import { getNoticeById } from '../services/api';
-import { ArrowLeft, Calendar, Clock, Tag, User, FileText, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Tag, User, FileText, AlertCircle, Download, Share2, Eye, ExternalLink } from 'lucide-react';
 
 const NoticeDetailPage = ({ noticeId }) => {
-  // Mock useParams for demonstration - replace with actual router params
   const { id } = useParams(); 
   const navigate = useNavigate();
   const [notice, setNotice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-    useEffect(() => {
+  useEffect(() => {
     const fetchNotice = async () => {
       try {
         setLoading(true);
@@ -60,17 +59,35 @@ const NoticeDetailPage = ({ noticeId }) => {
   };
 
   const handleGoBack = () => {
-    // navigate(-1); // Go back to previous page
-    navigate('/notices') //to go to notices list
+    navigate('/notices');
   };
 
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: notice?.title || 'Notice',
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      // You could show a toast notification here
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading notice details...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center space-y-4">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-200 mx-auto"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0 left-1/2 transform -translate-x-1/2"></div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-700 font-medium">Loading notice details</p>
+              <p className="text-slate-500 text-sm">Please wait a moment...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -78,17 +95,23 @@ const NoticeDetailPage = ({ noticeId }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading notice</h3>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={handleGoBack}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go Back
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-rose-50">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center max-w-md mx-auto px-6">
+            <div className="bg-white rounded-2xl shadow-xl p-8 border border-red-100">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Unable to Load Notice</h3>
+              <p className="text-slate-600 mb-6 leading-relaxed">{error}</p>
+              <button
+                onClick={handleGoBack}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                Return to Notices
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -96,140 +119,217 @@ const NoticeDetailPage = ({ noticeId }) => {
 
   if (!notice) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Notice not found</h3>
-          <p className="text-gray-600 mb-4">The notice you're looking for doesn't exist</p>
-          <button
-            onClick={handleGoBack}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go Back
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center max-w-md mx-auto px-6">
+            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Notice Not Found</h3>
+              <p className="text-slate-600 mb-6 leading-relaxed">The notice you're looking for doesn't exist or may have been removed.</p>
+              <button
+                onClick={handleGoBack}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                Browse All Notices
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center space-x-4">
-
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">Notice Details</h1>
-              <p className="text-gray-600 mt-1">View complete notice information</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Enhanced Header */}
+      <div className="bg-white/80 backdrop-blur-lg shadow-lg border-b border-white/20 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleGoBack}
+                className="flex items-center space-x-2 px-4 py-2 bg-white/60 hover:bg-white/80 text-slate-700 font-medium rounded-xl border border-slate-200/50 hover:border-slate-300/50 transition-all duration-200 hover:shadow-md backdrop-blur-sm"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back</span>
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Notice Details
+                </h1>
+                <p className="text-slate-600 mt-1">Complete notice information</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleShare}
+                className="flex items-center space-x-2 px-4 py-2 bg-white/60 hover:bg-white/80 text-slate-700 rounded-xl border border-slate-200/50 hover:border-slate-300/50 transition-all duration-200 hover:shadow-md backdrop-blur-sm"
+              >
+                <Share2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Share</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          {/* Notice Header */}
-          <div className="px-6 py-6 border-b border-gray-200">
-            <div className="flex flex-col space-y-4">
-              {/* Category and Status */}
-              <div className="flex items-center justify-between flex-wrap gap-2">
+      {/* Enhanced Content */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+          {/* Enhanced Notice Header */}
+          <div className="relative px-8 py-8 bg-gradient-to-r from-blue-600/5 via-indigo-600/5 to-purple-600/5 border-b border-slate-200/50">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/3 to-indigo-600/3"></div>
+            <div className="relative space-y-6">
+              {/* Status and Category */}
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center space-x-3">
                   {notice.category && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                      <Tag className="h-4 w-4 mr-1" />
+                    <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200/50 shadow-sm">
+                      <Tag className="h-4 w-4 mr-2" />
                       {notice.category}
                     </span>
                   )}
                 </div>
                 
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold shadow-sm border ${
                   notice.isPublished 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
+                    ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border-emerald-200/50' 
+                    : 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-200/50'
                 }`}>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${
+                    notice.isPublished ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`}></div>
                   {notice.isPublished ? 'Published' : 'Draft'}
                 </span>
               </div>
 
-              {/* Title */}
-              <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-                {notice.title || 'Untitled Notice'}
-              </h1>
+              {/* Enhanced Title */}
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 bg-clip-text text-transparent leading-tight mb-2">
+                  {notice.title || 'Untitled Notice'}
+                </h1>
+              </div>
 
-              {/* Meta Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <span>Created: {formatDate(notice.createdAt)}</span>
+              {/* Enhanced Meta Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-xl border border-slate-200/50 backdrop-blur-sm">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Created</p>
+                    <p className="text-sm font-semibold text-slate-700">{formatDate(notice.createdAt)}</p>
+                  </div>
                 </div>
                 
                 {notice.publishAt && (
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-gray-400" />
-                    <span>Published: {formatDate(notice.publishAt)}</span>
+                  <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-xl border border-slate-200/50 backdrop-blur-sm">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Published</p>
+                      <p className="text-sm font-semibold text-slate-700">{formatDate(notice.publishAt)}</p>
+                    </div>
                   </div>
                 )}
                 
                 {notice.createdById && (
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-gray-400" />
-                    <span>Created by: {notice.createdById}</span>
+                  <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-xl border border-slate-200/50 backdrop-blur-sm">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <User className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Created By</p>
+                      <p className="text-sm font-semibold text-slate-700">ADMIN</p>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Notice Content */}
-          <div className="px-6 py-6">
-            <div className="prose max-w-none">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <FileText className="h-5 w-5 mr-2 text-gray-600" />
-                Description
-              </h3>
-              
-              {notice.description ? (
-                <div className="text-gray-700 leading-relaxed text-base bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  {formatDescription(notice.description)}
+          {/* Enhanced Notice Content */}
+          <div className="px-8 py-8">
+            <div className="space-y-8">
+              <div>
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800">Description</h3>
                 </div>
-              ) : (
-                <div className="text-gray-500 italic bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  No description provided
+                
+                {notice.description ? (
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-2xl p-6 border border-slate-200/50 shadow-sm">
+                    <div className="text-slate-700 leading-relaxed text-base prose prose-slate max-w-none">
+                      {formatDescription(notice.description)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl p-6 border border-slate-200/50 shadow-sm">
+                    <div className="text-slate-500 italic text-center py-4">
+                      <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                      <p>No description provided for this notice</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Enhanced Attachment Section */}
+              {notice.attachmentUrl && (
+                <div>
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-r from-emerald-100 to-green-100 rounded-lg flex items-center justify-center">
+                      <Download className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800">Attachment</h3>
+                  </div>
+                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-200/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <a
+                      href={notice.attachmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between group"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors duration-200">
+                          <FileText className="h-6 w-6 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-emerald-800 group-hover:text-emerald-900">View Attachment</p>
+                          <p className="text-sm text-emerald-600">Click to open in new tab</p>
+                        </div>
+                      </div>
+                      <ExternalLink className="h-5 w-5 text-emerald-600 group-hover:text-emerald-700 transform group-hover:scale-110 transition-all duration-200" />
+                    </a>
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Attachment Section */}
-            {notice.attachmentUrl && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Attachment</h3>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <a
-                    href={notice.attachmentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 font-medium flex items-center space-x-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span>View Attachment</span>
-                  </a>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Footer Actions */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+          {/* Enhanced Footer */}
+          <div className="px-8 py-6 bg-gradient-to-r from-slate-50/80 to-blue-50/80 border-t border-slate-200/50 backdrop-blur-sm">
             <div className="flex justify-between items-center">
-              <div className="text-xs text-gray-500">
-                Notice ID: {notice.id}
+              <div className="flex items-center space-x-4">
+                <div className="text-xs text-slate-500 bg-white/60 px-3 py-2 rounded-lg border border-slate-200/50">
+                  <span className="font-medium">Notice ID:</span> {notice.id}
+                </div>
+                {notice.views && (
+                  <div className="flex items-center space-x-2 text-xs text-slate-500 bg-white/60 px-3 py-2 rounded-lg border border-slate-200/50">
+                    <Eye className="h-3 w-3" />
+                    <span>{notice.views} views</span>
+                  </div>
+                )}
               </div>
               
               <button
                 onClick={handleGoBack}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Back to Notices</span>
